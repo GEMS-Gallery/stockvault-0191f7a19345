@@ -23,7 +23,7 @@ actor {
         assets
     };
 
-    public func addAsset(asset: Asset) : async () {
+    public func addAsset(asset: {symbol: Text; name: Text; quantity: Float; assetType: Text}) : async () {
         let newAsset: Asset = {
             id = nextId;
             symbol = Text.toUppercase(asset.symbol);
@@ -35,7 +35,7 @@ actor {
         nextId += 1;
     };
 
-    public func updateAsset(id: Nat, updatedAsset: Asset) : async () {
+    public func updateAsset(id: Nat, updatedAsset: {symbol: Text; name: Text; quantity: Float; assetType: Text}) : async () {
         assets := Array.map<Asset, Asset>(assets, func (asset: Asset) : Asset {
             if (asset.id == id) {
                 {

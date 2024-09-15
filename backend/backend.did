@@ -7,8 +7,20 @@ type Asset =
    symbol: text;
  };
 service : {
-  addAsset: (Asset) -> ();
+  addAsset:
+   (record {
+      assetType: text;
+      name: text;
+      quantity: float64;
+      symbol: text;
+    }) -> ();
   getAssets: () -> (vec Asset) query;
   removeAsset: (nat) -> ();
-  updateAsset: (nat, Asset) -> ();
+  updateAsset: (nat,
+   record {
+     assetType: text;
+     name: text;
+     quantity: float64;
+     symbol: text;
+   }) -> ();
 }

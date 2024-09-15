@@ -1,30 +1,42 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
-import { idlFactory } from "../declarations/backend/backend.did.js";
 
 // Initialize Feather Icons
 feather.replace();
 
 let assets = [];
+let backend;
 
-const canisterId = process.env.BACKEND_CANISTER_ID;
-const agent = new HttpAgent({ host: "https://ic0.app" });
-const backend = Actor.createActor(idlFactory, { agent, canisterId });
+async function initializeBackend() {
+    const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID;
+    const agent = new HttpAgent({ host: "https://ic0.app" });
+    
+    // Dynamically import the declarations
+    const { idlFactory } = await import(/* @vite-ignore */ `../declarations/${canisterId}.did.js`);
+    backend = Actor.createActor(idlFactory, { agent, canisterId });
+}
 
-// Fetch assets from the canister
 async function fetchAssets() {
     try {
+        if (!backend) await initializeBackend();
         assets = await backend.getAssets();
         displayHoldings();
         updateCharts();
     } catch (error) {
         console.error('Error fetching assets:', error);
+        alert('Failed to fetch assets. Please try again later.');
     }
 }
 
-// Display holdings in the table
 async function displayHoldings() {
     const holdingsBody = document.getElementById('holdings-body');
     holdingsBody.innerHTML = '';
+
+    if (assets.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6">No assets found. Add some assets to get started!</td>';
+        holdingsBody.appendChild(row);
+        return;
+    }
 
     for (const asset of assets) {
         const marketData = await fetchMarketData(asset.symbol);
@@ -50,10 +62,9 @@ async function displayHoldings() {
     }
 }
 
-// Fetch market data from a public API
 async function fetchMarketData(symbol) {
     try {
-        const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+        const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
         const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
         const response = await fetch(url);
         const data = await response.json();
@@ -71,7 +82,6 @@ async function fetchMarketData(symbol) {
     }
 }
 
-// Function to switch between Holdings and Allocations pages
 function showPage(pageName) {
     const pages = document.querySelectorAll('#holdings-page, #allocations-page');
     const tabs = document.querySelectorAll('.tab');
@@ -85,7 +95,7 @@ function showPage(pageName) {
 
     tabs.forEach(tab => {
         tab.classList.remove('active');
-        if (tab.textContent.toLowerCase() === pageName) {
+        if (tab.dataset.page === pageName) {
             tab.classList.add('active');
         }
     });
@@ -95,20 +105,17 @@ function showPage(pageName) {
     }
 }
 
-// Show Add Asset Modal
 function showAddAssetModal() {
     const modal = document.getElementById('add-asset-modal');
     modal.style.display = 'block';
 }
 
-// Close Add Asset Modal
 function closeAddAssetModal() {
     const modal = document.getElementById('add-asset-modal');
     modal.style.display = 'none';
     document.getElementById('add-asset-form').reset();
 }
 
-// Handle Add Asset Form Submission
 document.getElementById('add-asset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const symbol = document.getElementById('symbol').value.toUpperCase();
@@ -119,18 +126,21 @@ document.getElementById('add-asset-form').addEventListener('submit', async (e) =
     const newAsset = { symbol, name, quantity, assetType: type };
 
     try {
+        if (!backend) await initializeBackend();
         await backend.addAsset(newAsset);
         await fetchAssets();
         closeAddAssetModal();
     } catch (error) {
         console.error('Error adding asset:', error);
+        alert('Failed to add asset. Please try again.');
     }
 });
 
-// Update Charts
 async function updateCharts() {
-    // Allocation Chart
     const assetTypes = {};
+    const performanceData = [];
+    const performanceLabels = [];
+
     for (const asset of assets) {
         if (!assetTypes[asset.assetType]) {
             assetTypes[asset.assetType] = 0;
@@ -138,6 +148,11 @@ async function updateCharts() {
         const marketData = await fetchMarketData(asset.symbol);
         const marketValue = marketData.currentPrice * asset.quantity;
         assetTypes[asset.assetType] += marketValue;
+
+        const previousClose = marketData.previousClose;
+        const totalGainValue = marketValue - (previousClose * asset.quantity);
+        performanceData.push(totalGainValue);
+        performanceLabels.push(asset.symbol);
     }
 
     const allocationLabels = Object.keys(assetTypes);
@@ -172,18 +187,6 @@ async function updateCharts() {
         }
     });
 
-    // Performance Chart
-    const performanceLabels = assets.map(asset => asset.symbol);
-    const performanceData = [];
-    for (const asset of assets) {
-        const marketData = await fetchMarketData(asset.symbol);
-        const marketPrice = marketData.currentPrice;
-        const previousClose = marketData.previousClose;
-        const marketValue = marketPrice * asset.quantity;
-        const totalGainValue = marketValue - (previousClose * asset.quantity);
-        performanceData.push(totalGainValue);
-    }
-
     const performanceChartCtx = document.getElementById('performanceChart').getContext('2d');
     new Chart(performanceChartCtx, {
         type: 'bar',
@@ -209,20 +212,21 @@ async function updateCharts() {
     });
 }
 
-// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     showPage('holdings');
     fetchAssets();
+
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => showPage(tab.dataset.page));
+    });
+
+    document.getElementById('add-asset-btn').addEventListener('click', showAddAssetModal);
+    document.getElementById('close-modal').addEventListener('click', closeAddAssetModal);
 });
 
-// Close modal when clicking outside of it
 window.onclick = function(event) {
     const modal = document.getElementById('add-asset-modal');
     if (event.target == modal) {
         closeAddAssetModal();
     }
 };
-
-window.showPage = showPage;
-window.showAddAssetModal = showAddAssetModal;
-window.closeAddAssetModal = closeAddAssetModal;
