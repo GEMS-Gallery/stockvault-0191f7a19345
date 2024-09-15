@@ -10,8 +10,13 @@ async function initializeBackend() {
     const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID;
     const agent = new HttpAgent({ host: "https://ic0.app" });
     
+    // Use environment variable for the host
+    const host = import.meta.env.VITE_DFX_NETWORK === "local" ? "http://localhost:4943" : "https://ic0.app";
+    
     // Dynamically import the declarations
-    const { idlFactory } = await import(/* @vite-ignore */ `../declarations/${canisterId}.did.js`);
+    const backendModule = await import(/* @vite-ignore */ `${host}/_/backend/backend.did.js`);
+    const { idlFactory } = backendModule;
+    
     backend = Actor.createActor(idlFactory, { agent, canisterId });
 }
 
