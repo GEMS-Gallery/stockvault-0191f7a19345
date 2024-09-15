@@ -1,80 +1,59 @@
-import Array "mo:base/Array";
-import Hash "mo:base/Hash";
+import Bool "mo:base/Bool";
 
+import Array "mo:base/Array";
+import Debug "mo:base/Debug";
 import Float "mo:base/Float";
-import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
 import Text "mo:base/Text";
 
-actor AssetStockHolding {
-    public type StockHolding = {
+actor {
+    public type Asset = {
+        id: Nat;
         symbol: Text;
+        name: Text;
         quantity: Float;
-        purchasePrice: Float;
-        currentPrice: Float;
+        assetType: Text;
     };
 
-    private stable var holdingsEntries : [(Text, StockHolding)] = [];
-    private var holdings = HashMap.HashMap<Text, StockHolding>(10, Text.equal, Text.hash);
+    private stable var assets: [Asset] = [];
+    private stable var nextId: Nat = 1;
 
-    system func preupgrade() {
-        holdingsEntries := Iter.toArray(holdings.entries());
+    public query func getAssets() : async [Asset] {
+        assets
     };
 
-    system func postupgrade() {
-        holdings := HashMap.fromIter<Text, StockHolding>(holdingsEntries.vals(), 10, Text.equal, Text.hash);
-    };
-
-    public func addHolding(symbol: Text, quantity: Float, purchasePrice: Float) : async () {
-        let holding : StockHolding = {
-            symbol = symbol;
-            quantity = quantity;
-            purchasePrice = purchasePrice;
-            currentPrice = purchasePrice; // Initialize with purchase price
+    public func addAsset(asset: Asset) : async () {
+        let newAsset: Asset = {
+            id = nextId;
+            symbol = asset.symbol;
+            name = asset.name;
+            quantity = asset.quantity;
+            assetType = asset.assetType;
         };
-        holdings.put(symbol, holding);
+        assets := Array.append(assets, [newAsset]);
+        nextId += 1;
     };
 
-    public func removeHolding(symbol: Text) : async () {
-        holdings.delete(symbol);
+    public func updateAsset(id: Nat, updatedAsset: Asset) : async () {
+        assets := Array.map<Asset, Asset>(assets, func (asset: Asset) : Asset {
+            if (asset.id == id) {
+                {
+                    id = asset.id;
+                    symbol = updatedAsset.symbol;
+                    name = updatedAsset.name;
+                    quantity = updatedAsset.quantity;
+                    assetType = updatedAsset.assetType;
+                }
+            } else {
+                asset
+            }
+        });
     };
 
-    public query func getHoldings() : async [StockHolding] {
-        return Iter.toArray(holdings.vals());
-    };
-
-    public query func calculateTotalValue() : async Float {
-        var totalValue : Float = 0;
-        for (holding in holdings.vals()) {
-            totalValue += holding.quantity * holding.currentPrice;
-        };
-        return totalValue;
-    };
-
-    public func updateHolding(symbol: Text, quantity: Float, currentPrice: Float) : async () {
-        switch (holdings.get(symbol)) {
-            case (null) { /* Do nothing if holding doesn't exist */ };
-            case (?existingHolding) {
-                let updatedHolding : StockHolding = {
-                    symbol = existingHolding.symbol;
-                    quantity = quantity;
-                    purchasePrice = existingHolding.purchasePrice;
-                    currentPrice = currentPrice;
-                };
-                holdings.put(symbol, updatedHolding);
-            };
-        };
-    };
-
-    // Mock function to simulate getting current stock prices
-    public func getCurrentPrices() : async [(Text, Float)] {
-        let mockPrices = [
-            ("AAPL", 150.0),
-            ("GOOGL", 2800.0),
-            ("MSFT", 300.0),
-            ("AMZN", 3300.0),
-            ("FB", 330.0)
-        ];
-        return mockPrices;
+    public func removeAsset(id: Nat) : async () {
+        assets := Array.filter<Asset>(assets, func(asset: Asset) : Bool {
+            asset.id != id
+        });
     };
 }

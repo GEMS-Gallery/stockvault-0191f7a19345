@@ -1,21 +1,16 @@
 export const idlFactory = ({ IDL }) => {
-  const StockHolding = IDL.Record({
-    'currentPrice' : IDL.Float64,
-    'purchasePrice' : IDL.Float64,
+  const Asset = IDL.Record({
+    'id' : IDL.Nat,
+    'name' : IDL.Text,
     'quantity' : IDL.Float64,
+    'assetType' : IDL.Text,
     'symbol' : IDL.Text,
   });
   return IDL.Service({
-    'addHolding' : IDL.Func([IDL.Text, IDL.Float64, IDL.Float64], [], []),
-    'calculateTotalValue' : IDL.Func([], [IDL.Float64], ['query']),
-    'getCurrentPrices' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Float64))],
-        [],
-      ),
-    'getHoldings' : IDL.Func([], [IDL.Vec(StockHolding)], ['query']),
-    'removeHolding' : IDL.Func([IDL.Text], [], []),
-    'updateHolding' : IDL.Func([IDL.Text, IDL.Float64, IDL.Float64], [], []),
+    'addAsset' : IDL.Func([Asset], [], []),
+    'getAssets' : IDL.Func([], [IDL.Vec(Asset)], ['query']),
+    'removeAsset' : IDL.Func([IDL.Nat], [], []),
+    'updateAsset' : IDL.Func([IDL.Nat, Asset], [], []),
   });
 };
 export const init = ({ IDL }) => { return []; };

@@ -1,18 +1,14 @@
-type StockHolding = 
+type Asset = 
  record {
-   currentPrice: float64;
-   purchasePrice: float64;
+   assetType: text;
+   id: nat;
+   name: text;
    quantity: float64;
    symbol: text;
  };
 service : {
-  addHolding: (text, float64, float64) -> ();
-  calculateTotalValue: () -> (float64) query;
-  getCurrentPrices: () -> (vec record {
-                                 text;
-                                 float64;
-                               });
-  getHoldings: () -> (vec StockHolding) query;
-  removeHolding: (text) -> ();
-  updateHolding: (text, float64, float64) -> ();
+  addAsset: (Asset) -> ();
+  getAssets: () -> (vec Asset) query;
+  removeAsset: (nat) -> ();
+  updateAsset: (nat, Asset) -> ();
 }
