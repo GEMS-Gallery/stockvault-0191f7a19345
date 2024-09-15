@@ -26,7 +26,7 @@ actor {
     public func addAsset(asset: Asset) : async () {
         let newAsset: Asset = {
             id = nextId;
-            symbol = asset.symbol;
+            symbol = Text.toUppercase(asset.symbol);
             name = asset.name;
             quantity = asset.quantity;
             assetType = asset.assetType;
@@ -40,7 +40,7 @@ actor {
             if (asset.id == id) {
                 {
                     id = asset.id;
-                    symbol = updatedAsset.symbol;
+                    symbol = Text.toUppercase(updatedAsset.symbol);
                     name = updatedAsset.name;
                     quantity = updatedAsset.quantity;
                     assetType = updatedAsset.assetType;

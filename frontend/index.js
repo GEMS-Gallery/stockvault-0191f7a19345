@@ -1,13 +1,16 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "../declarations/backend/backend.did.js";
 
+// Initialize Feather Icons
 feather.replace();
 
 let assets = [];
+
 const canisterId = process.env.BACKEND_CANISTER_ID;
 const agent = new HttpAgent({ host: "https://ic0.app" });
 const backend = Actor.createActor(idlFactory, { agent, canisterId });
 
+// Fetch assets from the canister
 async function fetchAssets() {
     try {
         assets = await backend.getAssets();
@@ -18,6 +21,7 @@ async function fetchAssets() {
     }
 }
 
+// Display holdings in the table
 async function displayHoldings() {
     const holdingsBody = document.getElementById('holdings-body');
     holdingsBody.innerHTML = '';
@@ -46,6 +50,7 @@ async function displayHoldings() {
     }
 }
 
+// Fetch market data from a public API
 async function fetchMarketData(symbol) {
     try {
         const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
@@ -66,6 +71,7 @@ async function fetchMarketData(symbol) {
     }
 }
 
+// Function to switch between Holdings and Allocations pages
 function showPage(pageName) {
     const pages = document.querySelectorAll('#holdings-page, #allocations-page');
     const tabs = document.querySelectorAll('.tab');
@@ -89,17 +95,20 @@ function showPage(pageName) {
     }
 }
 
+// Show Add Asset Modal
 function showAddAssetModal() {
     const modal = document.getElementById('add-asset-modal');
     modal.style.display = 'block';
 }
 
+// Close Add Asset Modal
 function closeAddAssetModal() {
     const modal = document.getElementById('add-asset-modal');
     modal.style.display = 'none';
     document.getElementById('add-asset-form').reset();
 }
 
+// Handle Add Asset Form Submission
 document.getElementById('add-asset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const symbol = document.getElementById('symbol').value.toUpperCase();
@@ -118,11 +127,10 @@ document.getElementById('add-asset-form').addEventListener('submit', async (e) =
     }
 });
 
+// Update Charts
 async function updateCharts() {
+    // Allocation Chart
     const assetTypes = {};
-    const performanceData = [];
-    const performanceLabels = [];
-
     for (const asset of assets) {
         if (!assetTypes[asset.assetType]) {
             assetTypes[asset.assetType] = 0;
@@ -130,11 +138,6 @@ async function updateCharts() {
         const marketData = await fetchMarketData(asset.symbol);
         const marketValue = marketData.currentPrice * asset.quantity;
         assetTypes[asset.assetType] += marketValue;
-
-        const previousClose = marketData.previousClose;
-        const totalGainValue = marketValue - (previousClose * asset.quantity);
-        performanceData.push(totalGainValue);
-        performanceLabels.push(asset.symbol);
     }
 
     const allocationLabels = Object.keys(assetTypes);
@@ -169,6 +172,18 @@ async function updateCharts() {
         }
     });
 
+    // Performance Chart
+    const performanceLabels = assets.map(asset => asset.symbol);
+    const performanceData = [];
+    for (const asset of assets) {
+        const marketData = await fetchMarketData(asset.symbol);
+        const marketPrice = marketData.currentPrice;
+        const previousClose = marketData.previousClose;
+        const marketValue = marketPrice * asset.quantity;
+        const totalGainValue = marketValue - (previousClose * asset.quantity);
+        performanceData.push(totalGainValue);
+    }
+
     const performanceChartCtx = document.getElementById('performanceChart').getContext('2d');
     new Chart(performanceChartCtx, {
         type: 'bar',
@@ -194,11 +209,13 @@ async function updateCharts() {
     });
 }
 
+// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     showPage('holdings');
     fetchAssets();
 });
 
+// Close modal when clicking outside of it
 window.onclick = function(event) {
     const modal = document.getElementById('add-asset-modal');
     if (event.target == modal) {
