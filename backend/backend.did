@@ -1,0 +1,18 @@
+type StockHolding = 
+ record {
+   currentPrice: float64;
+   purchasePrice: float64;
+   quantity: float64;
+   symbol: text;
+ };
+service : {
+  addHolding: (text, float64, float64) -> ();
+  calculateTotalValue: () -> (float64) query;
+  getCurrentPrices: () -> (vec record {
+                                 text;
+                                 float64;
+                               });
+  getHoldings: () -> (vec StockHolding) query;
+  removeHolding: (text) -> ();
+  updateHolding: (text, float64, float64) -> ();
+}
